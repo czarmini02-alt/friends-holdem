@@ -44,6 +44,34 @@ function bestHand(cards) {
   }
   return { score: best, cards: bc };
 }
+// 7장 빠른 족보 점수 (bestHand(...).score 와 같은 비교 결과)
+const CARD_R = {}, CARD_S = {};
+for (const r of RANKS) for (const s of SUITS) { CARD_R[r + s] = RANKS.indexOf(r) + 2; CARD_S[r + s] = SUITS.indexOf(s); }
+function straightHigh(mask) {
+  for (let h = 14; h >= 6; h--) { if (((mask >> (h - 4)) & 31) === 31) return h; }
+  if ((mask & (1 << 14)) && (mask & 0b111100) === 0b111100) return 5;
+  return 0;
+}
+function fastScore(cards) {
+  const cnt = new Array(15).fill(0), sc = [0, 0, 0, 0], sm = [0, 0, 0, 0];
+  let mask = 0;
+  for (const c of cards) { const r = CARD_R[c], s = CARD_S[c]; cnt[r]++; sc[s]++; sm[s] |= 1 << r; mask |= 1 << r; }
+  for (let s = 0; s < 4; s++) if (sc[s] >= 5) {
+    const sf = straightHigh(sm[s]); if (sf) return [8, sf];
+    const fr = []; for (let r = 14; r >= 2 && fr.length < 5; r--) if (sm[s] & (1 << r)) fr.push(r);
+    var flush = [5, ...fr];
+  }
+  let quad = 0, trips = [], pairs = [], singles = [];
+  for (let r = 14; r >= 2; r--) { if (cnt[r] === 4) quad = r; else if (cnt[r] === 3) trips.push(r); else if (cnt[r] === 2) pairs.push(r); else if (cnt[r] === 1) singles.push(r); }
+  if (quad) { let k = 0; for (let r = 14; r >= 2; r--) if (r !== quad && cnt[r]) { k = r; break; } return [7, quad, k]; }
+  if (trips.length && (trips.length > 1 || pairs.length)) { const p = Math.max(trips[1] || 0, pairs[0] || 0); return [6, trips[0], p]; }
+  if (flush) return flush;
+  const st = straightHigh(mask); if (st) return [4, st];
+  if (trips.length) return [3, trips[0], ...singles.slice(0, 2)];
+  if (pairs.length >= 2) { const k = Math.max(pairs[2] || 0, singles[0] || 0); return [2, pairs[0], pairs[1], k]; }
+  if (pairs.length) return [1, pairs[0], ...singles.slice(0, 3)];
+  return [0, ...singles.slice(0, 5)];
+}
 function handName(s) { return s[0] === 8 && s[1] === 14 ? '로열 플러시' : HAND_NAMES[s[0]]; }
 
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -94,7 +122,7 @@ function startHand(st0, seats) {
   st.dealerId = ps[d].id;
   const sbI = elig.length === 2 ? d : nextIdx(ps, d, p => p.inHand);
   const bbI = nextIdx(ps, sbI, p => p.inHand);
-  st.deck = newDeck(); st.board = []; st.result = null;
+  st.deck = newDeck(); st.board = []; st.result = null; st.runout = false; st.shown = {}; st.equity = null;
   st.handNo = (st.handNo || 0) + 1; st.log = [];
   for (let r = 0; r < 2; r++) { let i = sbI; for (let k = 0; k < elig.length; k++) { ps[i].hole.push(st.deck.pop()); i = nextIdx(ps, i, p => p.inHand); } }
   put(ps[sbI], st.settings.sb); put(ps[bbI], st.settings.bb);
@@ -139,22 +167,63 @@ function applyAction(st0, uid, type, amount, force) {
   return st;
 }
 
+function dealStreet(st) {
+  st.deck.pop(); // burn
+  if (st.phase === 'preflop') { st.board.push(st.deck.pop(), st.deck.pop(), st.deck.pop()); st.phase = 'flop'; }
+  else if (st.phase === 'flop') { st.board.push(st.deck.pop()); st.phase = 'turn'; }
+  else { st.board.push(st.deck.pop()); st.phase = 'river'; }
+}
 function nextStreet(st) {
   const ps = st.players;
-  while (true) {
-    ps.forEach(p => { p.bet = 0; p.acted = false; });
-    st.currentBet = 0; st.minRaise = st.settings.bb;
-    if (st.phase === 'river') return showdown(st);
-    st.deck.pop(); // burn
-    if (st.phase === 'preflop') { st.board.push(st.deck.pop(), st.deck.pop(), st.deck.pop()); st.phase = 'flop'; }
-    else if (st.phase === 'flop') { st.board.push(st.deck.pop()); st.phase = 'turn'; }
-    else { st.board.push(st.deck.pop()); st.phase = 'river'; }
-    if (ps.filter(canAct).length > 1) {
-      const d = ps.findIndex(p => p.id === st.dealerId);
-      st.toAct = nextIdx(ps, d, canAct); st.turnSince = Date.now();
-      return st;
+  ps.forEach(p => { p.bet = 0; p.acted = false; });
+  st.currentBet = 0; st.minRaise = st.settings.bb;
+  if (st.phase === 'river') return showdown(st);
+  // 더 이상 베팅할 사람이 없으면(올인) 패를 공개하고 한 장씩 천천히 진행
+  if (ps.filter(canAct).length <= 1) {
+    st.runout = true; st.toAct = -1;
+    log(st, '올인! 패를 공개합니다');
+    return st;
+  }
+  dealStreet(st);
+  const d = ps.findIndex(p => p.id === st.dealerId);
+  st.toAct = nextIdx(ps, d, canAct); st.turnSince = Date.now();
+  return st;
+}
+// 올인 런아웃 한 단계: 다음 스트리트를 깔거나 쇼다운
+function runoutStep(st0) {
+  const st = clone(st0);
+  if (!st.runout) return st;
+  if (st.phase === 'river') return showdown(st);
+  dealStreet(st);
+  return st;
+}
+// 승률(%) 계산: 남은 카드가 2장 이하면 전수, 아니면 몬테카를로
+function equity(st, samples) {
+  const lp = st.players.filter(live);
+  const known = new Set(st.board);
+  st.players.forEach(p => (p.hole || []).forEach(c => known.add(c)));
+  const rest = [];
+  for (const r of RANKS) for (const s of SUITS) if (!known.has(r + s)) rest.push(r + s);
+  const need = 5 - st.board.length, win = {};
+  lp.forEach(p => win[p.id] = 0);
+  let total = 0;
+  const score = extra => {
+    const board = st.board.concat(extra); let best = null, ws = [];
+    lp.forEach(p => { const sc = fastScore(p.hole.concat(board)); const c = best ? cmpScore(sc, best) : 1; if (c > 0) { best = sc; ws = [p.id]; } else if (c === 0) ws.push(p.id); });
+    ws.forEach(id => win[id] += 1 / ws.length); total++;
+  };
+  if (need === 0) score([]);
+  else if (need === 1) rest.forEach(c => score([c]));
+  else if (need === 2) { for (let i = 0; i < rest.length; i++) for (let j = i + 1; j < rest.length; j++) score([rest[i], rest[j]]); }
+  else {
+    const n = samples || 3000, a = rest.slice();
+    for (let k = 0; k < n; k++) {
+      for (let i = 0; i < need; i++) { const j = i + randInt(a.length - i); [a[i], a[j]] = [a[j], a[i]]; }
+      score(a.slice(0, need));
     }
   }
+  const out = {}; lp.forEach(p => out[p.id] = Math.round(win[p.id] / total * 1000) / 10);
+  return out;
 }
 
 function seatOrderFromDealer(st, list) {
@@ -167,7 +236,7 @@ function awardFold(st) {
   const ps = st.players, w = ps.find(live);
   const pot = ps.reduce((s, p) => s + p.total, 0);
   w.stack += pot;
-  st.phase = 'showdown'; st.toAct = -1;
+  st.phase = 'showdown'; st.toAct = -1; st.runout = false;
   st.result = { type: 'fold', pots: [{ amount: pot, winners: [w.id], refund: false }], hands: {} };
   ps.forEach(p => p.bet = 0);
   log(st, `${w.name} 팟 ${pot} 획득 (나머지 폴드)`);
@@ -176,7 +245,7 @@ function awardFold(st) {
 
 function showdown(st) {
   const ps = st.players, lp = ps.filter(live);
-  st.phase = 'showdown'; st.toAct = -1;
+  st.phase = 'showdown'; st.toAct = -1; st.runout = false;
   const ev = {}; lp.forEach(p => ev[p.id] = bestHand([...p.hole, ...st.board]));
   const levels = [...new Set(lp.map(p => p.total))].sort((a, b) => a - b);
   let prev = 0; const pots = [];
@@ -205,4 +274,4 @@ function showdown(st) {
   return st;
 }
 
-if (typeof module !== 'undefined') module.exports = { newDeck, eval5, bestHand, cmpScore, handName, newTable, startHand, applyAction, syncSeats, clone };
+if (typeof module !== 'undefined') module.exports = { newDeck, eval5, bestHand, cmpScore, handName, newTable, startHand, applyAction, syncSeats, clone, runoutStep, equity, fastScore };

@@ -86,10 +86,53 @@ aside{display:flex;flex-direction:column;gap:12px}
 #toast.show{opacity:1;transform:translateX(-50%)}
 #toast.err{border-color:#a33}
 @media(max-width:560px){.seat{width:86px}.seat .nm{font-size:11px}.card{width:30px;height:42px}.card .r,.card .s{font-size:13px}.card.sm{width:22px;height:31px}.card.sm .r,.card.sm .s{font-size:10px}.card.lg{width:48px;height:66px}.table-wrap{aspect-ratio:4/5}.felt{inset:12% 6%}}
+.tbar{height:4px;background:#ffffff1a;border-radius:3px;margin-top:4px;overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--gold);width:100%;transition:width 1s linear}
+.tbar.low i{background:#e54b4b}
+.seat.turn.low .box{animation:pulse .5s infinite alternate}
+@keyframes pulse{to{box-shadow:0 0 22px #e54b4bcc;border-color:#e54b4b}}
+.eq{position:absolute;top:-10px;right:-10px;background:#111;border:1px solid var(--gold);color:var(--gold);font-weight:800;font-size:12px;padding:1px 6px;border-radius:8px;z-index:3}
+.eq.lead{background:var(--gold);color:#221a00}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:visible}
+.bubble{position:absolute;transform:translate(-50%,-100%);background:#fff;color:#111;font-weight:800;font-size:13px;padding:4px 10px;border-radius:12px;white-space:nowrap;animation:pop 1.9s ease forwards;box-shadow:0 3px 10px #0008}
+.bubble.raise,.bubble.bet{background:var(--gold)}
+.bubble.allin{background:#e5323b;color:#fff;font-size:15px}
+.bubble.fold{background:#555;color:#ddd}
+.bubble.chat{background:#e9f5ee;color:#111;font-weight:600;max-width:190px;white-space:normal;animation-duration:4.5s}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-60%) scale(.6)}10%{opacity:1;transform:translate(-50%,-100%) scale(1.08)}20%{transform:translate(-50%,-100%) scale(1)}85%{opacity:1}100%{opacity:0;transform:translate(-50%,-125%)}}
+.float{position:absolute;transform:translate(-50%,-50%);font-size:32px;animation:rise 2.2s ease-out forwards}
+@keyframes rise{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}15%{opacity:1;transform:translate(-50%,-80%) scale(1.25)}100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),-280%) scale(1)}}
+.plus{position:absolute;transform:translate(-50%,-50%);color:#7dffb0;font-weight:900;font-size:24px;text-shadow:0 2px 6px #000;animation:rise 2.6s ease-out forwards}
+.banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(30px,7vw,72px);font-weight:900;color:#fff;text-shadow:0 0 24px #e5323b,0 5px 0 #7a0f14;letter-spacing:2px;animation:slam 1.7s ease forwards;white-space:nowrap}
+.banner.win{text-shadow:0 0 24px #3fb97a,0 4px 0 #0e4d2b;font-size:clamp(20px,4.5vw,42px)}
+.banner.info{text-shadow:0 0 20px #e8c26a,0 4px 0 #6b5000;font-size:clamp(20px,4vw,38px)}
+@keyframes slam{0%{opacity:0;transform:translate(-50%,-50%) scale(2.6)}18%{opacity:1;transform:translate(-50%,-50%) scale(1)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}}
+.shake{animation:shake .5s}
+@keyframes shake{20%{transform:translate(-7px,3px)}40%{transform:translate(7px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-1px)}}
+.dealin{animation:dealin .5s cubic-bezier(.2,.8,.3,1.2) both}
+@keyframes dealin{from{opacity:0;transform:translate(var(--fx,0),var(--fy,0)) rotate(-40deg) scale(.4)}}
+.flip{animation:flip .6s ease both}
+.flip.slow{animation:squeeze 1.6s ease both}
+@keyframes flip{0%{transform:rotateY(90deg) scale(.8);filter:brightness(.3)}60%{transform:rotateY(-10deg) scale(1.1)}100%{transform:none}}
+@keyframes squeeze{0%{transform:rotateY(90deg) scale(.9);filter:brightness(.2)}55%{transform:rotateY(70deg) scale(1.15);filter:brightness(.4)}80%{transform:rotateY(-8deg) scale(1.2)}100%{transform:none}}
+.wrap-runout .felt{box-shadow:inset 0 0 90px #000d,0 0 50px #e5323b66}
+.wrap-runout #phase{color:#ff9a9f;opacity:1;font-weight:700}
+.confetti{position:absolute;width:8px;height:13px;top:50%;left:50%;border-radius:2px;animation:conf 2s ease-out forwards}
+@keyframes conf{to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
+#chatBox .msgs{height:210px;overflow-y:auto;font-size:13px;display:flex;flex-direction:column;gap:4px;margin-bottom:8px;word-break:break-word}
+#chatBox .msgs .sys{color:var(--mute);font-size:12px}
+#chatBox .msgs b{color:var(--gold);font-weight:600;margin-right:5px}
+#chatBox form{display:flex;gap:6px}#chatBox input{flex:1;min-width:0}#chatBox button{padding:8px 12px}
+.reacts{display:flex;gap:4px;flex-wrap:wrap;width:100%;border-top:1px solid var(--line);padding-top:10px}
+.reacts button{padding:5px 8px;font-size:18px;background:#1f2b26;border-radius:8px}
+#muteBtn{background:transparent;font-size:18px;padding:4px 8px}
+.rebuyRow{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:5px 0;gap:6px}
+.rebuyRow button{padding:5px 10px;font-size:12px}
+.reqtag{font-size:10px;background:var(--gold);color:#221a00;border-radius:5px;padding:0 5px;margin-left:4px}
 </style>
 </head>
 <body>
-<header><h1>♠ 친구들과 <span>홀덤</span></h1><div id="tinfo"></div><div id="status"></div></header>
+<header><h1>♠ 친구들과 <span>홀덤</span></h1><div id="tinfo"></div><div id="status"></div><button id="muteBtn" title="효과음 켜기/끄기">🔊</button></header>
 
 <section id="lobby">
   <h2>테이블에 앉기</h2>
@@ -104,10 +147,11 @@ aside{display:flex;flex-direction:column;gap:12px}
 
 <section id="game" hidden>
   <div>
-    <div class="table-wrap"><div class="felt"><div id="center"><div id="board"></div><div id="pot"></div><div id="phase"></div></div></div><div id="seats"></div></div>
-    <div id="panel"><div id="mine"></div><div id="actions"></div></div>
+    <div class="table-wrap"><div class="felt"><div id="center"><div id="board"></div><div id="pot"></div><div id="phase"></div></div></div><div id="seats"></div><div class="fx" id="fx"></div></div>
+    <div id="panel"><div id="mine"></div><div id="actions"></div><div class="reacts" id="reacts"></div></div>
   </div>
   <aside>
+    <div class="card-box" id="chatBox"><h3>채팅</h3><div class="msgs" id="msgs"></div><form id="chatForm"><input id="chatIn" maxlength="200" placeholder="메시지 입력…" autocomplete="off"><button class="pri">전송</button></form></div>
     <div class="card-box" id="resultBox" hidden><h3>지난 핸드 결과</h3><div id="result"></div></div>
     <div class="card-box"><h3>순위 (리바이 반영 손익)</h3><div id="board-list"></div></div>
     <div class="card-box"><h3>기록</h3><div id="log"></div></div>
@@ -117,6 +161,7 @@ aside{display:flex;flex-direction:column;gap:12px}
       <div class="row"><label>시작 칩</label><input type="number" id="sStart" min="10"></div>
       <div class="row"><button id="applySet">적용</button><button class="danger" id="resetBtn">테이블 초기화</button></div>
       <div class="hint" id="setHint"></div>
+      <h3 style="margin-top:12px">리바이 주기</h3><div id="rebuyAdmin"></div>
     </div>
   </aside>
 </section>
@@ -128,9 +173,47 @@ aside{display:flex;flex-direction:column;gap:12px}
 const $ = s => document.querySelector(s);
 const ACTIVE = ['preflop', 'flop', 'turn', 'river'];
 const PHASE_KO = { waiting: '대기 중', preflop: '프리플랍', flop: '플랍', turn: '턴', river: '리버', showdown: '핸드 종료' };
-let socket = null, uid = null, code = null, game = null, seats = {}, hostId = null, deadline = 0, skew = 0;
+const REACTS = ['😂', '😱', '🔥', '👏', '🤔', '😭', '😎', '🙏'];
+let socket = null, uid = null, code = null, game = null, seats = {}, hostId = null, deadline = 0, turnTotal = 45000, skew = 0;
 let busy = false, panelKey = null, resetArmed = false, joined = false;
+let posOf = {}, prev = null, dealAt = 0, flipAt = {}, myName = '';
 
+// ---------- 효과음 (WebAudio로 즉석 합성) ----------
+let actx = null, muted = (store('holdem-mute') === '1');
+function audio() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { actx = null; } } if (actx && actx.state === 'suspended') actx.resume().catch(() => {}); return actx; }
+document.addEventListener('pointerdown', () => audio(), { once: true });
+function tone(f, dur, type, vol, when, f2) {
+  const a = audio(); if (!a || muted) return;
+  const t = a.currentTime + (when || 0), o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || .2, t + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+function noise(dur, vol, when, freq) {
+  const a = audio(); if (!a || muted) return;
+  const t = a.currentTime + (when || 0), len = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  f.type = 'bandpass'; f.frequency.value = freq || 3000; g.gain.value = vol || .3;
+  src.buffer = b; src.connect(f).connect(g).connect(a.destination); src.start(t);
+}
+const sfx = {
+  deal: n => { for (let i = 0; i < n; i++) noise(.06, .35, i * .09, 4500); },
+  flip: () => noise(.12, .4, 0, 2500),
+  chip: () => { tone(2400, .05, 'square', .06); tone(3100, .05, 'square', .05, .05); tone(2700, .06, 'square', .04, .1); },
+  check: () => { tone(160, .08, 'sine', .5); tone(150, .08, 'sine', .45, .12); },
+  fold: () => noise(.25, .2, 0, 900),
+  allin: () => { tone(70, 1.1, 'sawtooth', .18, 0, 140); tone(110, 1.1, 'sawtooth', .12, 0, 220); tone(880, .4, 'triangle', .12, .7, 1320); },
+  turn: () => { tone(880, .15, 'sine', .2); tone(1320, .25, 'sine', .2, .12); },
+  tick: () => tone(1500, .03, 'square', .05),
+  win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .35, 'triangle', .18, i * .1)),
+  heart: () => { tone(55, .15, 'sine', .5); tone(50, .15, 'sine', .4, .2); },
+  pop: () => tone(600, .08, 'sine', .15, 0, 900),
+};
+function setMute(m) { muted = m; store('holdem-mute', m ? '1' : '0'); $('#muteBtn').textContent = m ? '🔇' : '🔊'; }
+$('#muteBtn').onclick = () => setMute(!muted);
+
+// ---------- 공통 ----------
 function toast(m, err) { const t = $('#toast'); t.textContent = m; t.className = 'show' + (err ? ' err' : ''); clearTimeout(toast.t); toast.t = setTimeout(() => t.className = '', 2800); }
 function cardEl(c, size, hl) {
   const d = document.createElement('div'); d.className = 'card' + (size ? ' ' + size : '');
@@ -156,11 +239,40 @@ function emit(ev, data) {
     socket.timeout(8000).emit(ev, data || {}, (err, r) => { if (err) rej(new Error('서버 응답이 없어요')); else if (r && r.error) rej(new Error(r.error)); else res(r); });
   });
 }
+// 다시 그려도 애니메이션이 처음부터 재생되지 않도록 시작 시각 기준으로 이어서 재생
+function animFrom(e, cls, startAt, delay) {
+  const el_ = Date.now() - startAt - (delay || 0);
+  if (el_ > 2600) return;
+  e.classList.add(cls); e.style.animationDelay = (-el_) + 'ms';
+}
 
+// ---------- 연출 레이어 ----------
+function fxAdd(node, ms) { $('#fx').append(node); setTimeout(() => node.remove(), ms); }
+function at(pid, node, dy) { const p = posOf[pid]; if (!p) return false; node.style.left = p.x + '%'; node.style.top = `calc(${p.y}% + ${dy || 0}px)`; return true; }
+function bubble(pid, text, cls, ms) { const b = el('div', 'bubble ' + (cls || ''), text); if (at(pid, b, -48)) fxAdd(b, ms || 2000); }
+let bannerFree = 0;
+function banner(text, cls, ms) {
+  ms = ms || 1800; const now = Date.now(), start = Math.max(now, bannerFree); bannerFree = start + ms * 0.85;
+  setTimeout(() => fxAdd(el('div', 'banner ' + (cls || ''), text), ms), start - now);
+}
+function shake() { const w = $('.table-wrap'); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
+function confetti() {
+  const colors = ['#e8c26a', '#3fb97a', '#e5323b', '#5aa9ff', '#fff'];
+  for (let i = 0; i < 46; i++) {
+    const c = el('div', 'confetti'); const a = Math.random() * Math.PI * 2, d = 120 + Math.random() * 260;
+    c.style.background = colors[i % colors.length];
+    c.style.setProperty('--x', Math.cos(a) * d + 'px'); c.style.setProperty('--y', Math.sin(a) * d - 80 + 'px'); c.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+    c.style.animationDelay = Math.random() * .15 + 's'; fxAdd(c, 2400);
+  }
+}
+
+// ---------- 접속 ----------
 function init() {
+  setMute(muted);
   $('#nick').value = (store('holdem-nick') || '').slice(0, 12);
   const h = location.hash.slice(1); if (/^t-[a-z0-9-]{1,20}$/.test(h)) $('#code').value = h.slice(2);
   $('#lobbyForm').hidden = false; $('#lobbyMsg').textContent = '서버에 연결 중… (처음 접속이면 서버가 깨어나는 데 1분쯤 걸릴 수 있어요)';
+  REACTS.forEach(e => $('#reacts').append(btn(e, '', () => { emit('react', { e }).catch(() => {}); })));
   socket = io({ reconnection: true });
   socket.on('connect', () => {
     $('#lobbyMsg').textContent = ''; $('#status').textContent = '';
@@ -168,18 +280,81 @@ function init() {
   });
   socket.on('disconnect', () => { $('#status').textContent = '연결 끊김 — 다시 연결하는 중…'; });
   socket.on('state', s => {
-    game = s.game; seats = s.seats || {}; uid = s.you; hostId = s.host; deadline = s.deadline || 0; skew = Date.now() - s.now;
+    const g = s.game; uid = s.you; hostId = s.host; deadline = s.deadline || 0; turnTotal = s.turnTotal || 45000; skew = Date.now() - s.now; seats = s.seats || {};
+    onStateChange(prev, g); game = g;
+    prev = { handNo: g.handNo, board: (g.board || []).length, phase: g.phase, runout: !!g.runout, toAct: g.toAct };
     render();
   });
+  socket.on('fx', onFx);
+  socket.on('react', ({ pid, e }) => {
+    const f = el('div', 'float', e); f.style.setProperty('--dx', (Math.random() * 60 - 30) + 'px');
+    if (at(pid, f, -30)) { fxAdd(f, 2300); sfx.pop(); }
+  });
+  socket.on('chatHistory', list => { $('#msgs').innerHTML = ''; list.forEach(m => addChat(m, true)); });
+  socket.on('chat', m => addChat(m, false));
+}
+
+function addChat(m, quiet) {
+  const box = $('#msgs'), d = el('div', m.sys ? 'sys' : '');
+  if (m.sys) d.textContent = '· ' + m.text; else { d.append(el('b', '', m.name)); d.append(document.createTextNode(m.text)); }
+  const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  box.append(d); while (box.children.length > 80) box.firstChild.remove();
+  if (stick || !quiet) box.scrollTop = box.scrollHeight;
+  if (!quiet && !m.sys) { bubble(m.pid, m.text, 'chat', 4600); if (m.pid !== uid) sfx.pop(); }
+}
+$('#chatForm').onsubmit = e => {
+  e.preventDefault(); const t = $('#chatIn').value.trim(); if (!t) return;
+  emit('chat', { text: t }).then(() => $('#chatIn').value = '').catch(err => toast(err.message, true));
+};
+
+function onFx(f) {
+  const KO = { fold: '폴드', check: '체크', call: '콜', bet: '벳', raise: '레이즈' };
+  if (f.kind === 'show') { bubble(f.pid, '패 공개! 👀', 'raise'); sfx.flip(); return; }
+  if (f.allIn) { bubble(f.pid, 'ALL IN!', 'allin', 2200); banner('ALL IN', '', 1700); shake(); sfx.allin(); return; }
+  let txt = KO[f.kind] || f.kind; if (f.amount) txt += ' ' + f.amount.toLocaleString(); if (f.timeout) txt += ' ⏰';
+  bubble(f.pid, txt, f.kind);
+  if (f.kind === 'fold') sfx.fold(); else if (f.kind === 'check') sfx.check(); else sfx.chip();
+}
+
+function onStateChange(p, g) {
+  if (!p) { if (g.handNo && ACTIVE.includes(g.phase)) dealAt = 0; return; }
+  if (g.handNo !== p.handNo && g.phase !== 'waiting') {
+    dealAt = Date.now(); flipAt = {};
+    const n = (g.players || []).filter(x => x.inHand).length; sfx.deal(n * 2);
+  }
+  const nb = (g.board || []).length;
+  if (g.handNo === p.handNo && nb > p.board) {
+    const slow = g.runout && nb === 5;
+    for (let i = p.board; i < nb; i++) flipAt[i] = { t: Date.now() + (slow ? 0 : (i - p.board) * 160), slow };
+    if (slow) { sfx.heart(); setTimeout(sfx.flip, 900); } else sfx.flip();
+  }
+  if (g.runout && !p.runout) { banner('쇼다운!', 'info', 1800); sfx.heart(); }
+  if (g.phase === 'showdown' && p.phase !== 'showdown' && g.result) setTimeout(() => celebrate(g), g.result.type === 'showdown' && nb === 5 && p.board < 5 ? 1500 : 250);
+  const myIdx = (g.players || []).findIndex(x => x.id === uid);
+  if (ACTIVE.includes(g.phase) && g.toAct === myIdx && myIdx >= 0 && !(p.toAct === myIdx && p.handNo === g.handNo && p.phase === g.phase)) { sfx.turn(); try { navigator.vibrate && navigator.vibrate(120); } catch {} }
+}
+
+function celebrate(g) {
+  const won = {};
+  g.result.pots.forEach(pt => pt.winners.forEach((w, k) => won[w] = (won[w] || 0) + Math.floor(pt.amount / pt.winners.length) + (k === 0 ? pt.amount % pt.winners.length : 0)));
+  const main = g.result.pots.find(pt => !pt.refund) || g.result.pots[0];
+  Object.entries(won).forEach(([id, amt]) => { const n = el('div', 'plus', '+' + amt.toLocaleString()); if (at(id, n, -20)) fxAdd(n, 2700); });
+  if (main) {
+    const name = (g.players.find(p => p.id === main.winners[0]) || {}).name || '';
+    const hand = g.result.hands && g.result.hands[main.winners[0]];
+    banner(`${name} 승리${hand ? ' · ' + hand.name : ''}`, 'win', 2600);
+  }
+  if (won[uid] && main && main.winners.includes(uid)) { confetti(); sfx.win(); }
 }
 
 $('#joinBtn').onclick = async () => {
+  audio();
   const nick = $('#nick').value.trim().slice(0, 12);
   const c = ($('#code').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '') || 'main').slice(0, 20);
   if (!nick) { toast('닉네임을 입력해주세요', true); return; }
   $('#joinBtn').disabled = true;
   try {
-    store('holdem-nick', nick);
+    store('holdem-nick', nick); myName = nick;
     await emit('join', { code: c, name: nick, token: token() });
     code = c; joined = true;
     try { history.replaceState(null, '', '#t-' + c); } catch {}
@@ -206,48 +381,65 @@ function winnersInfo() {
   return { ids, hl };
 }
 
+// ---------- 그리기 ----------
 function render() {
   if (!joined || !game) return;
   const g = game, ps = g.players || [], W = winnersInfo();
   const showCards = g.phase === 'showdown' && g.result && g.result.type === 'showdown';
+  $('.table-wrap').classList.toggle('wrap-runout', !!g.runout);
   const waiting = Object.entries(seats).filter(([id, s]) => !s.left && !ps.some(p => p.id === id))
     .map(([id, s]) => ({ id, name: s.name, waiting: true, stack: null }));
   const list = [...ps, ...waiting], n = list.length, mi = list.findIndex(p => p.id === uid);
-  const box = $('#seats'); box.innerHTML = '';
+  const box = $('#seats'); box.innerHTML = ''; posOf = {};
+  const W_ = $('.table-wrap').clientWidth, H_ = $('.table-wrap').clientHeight;
+  const eqs = g.runout && g.equity ? g.equity : null, maxEq = eqs ? Math.max(...Object.values(eqs)) : 0;
   list.forEach((p, k) => {
     const rel = mi >= 0 ? ((k - mi) % n + n) % n : k;
     const ang = (90 + 360 * rel / n) * Math.PI / 180;
     const x = 50 + 43 * Math.cos(ang), y = 50 + 41 * Math.sin(ang);
+    posOf[p.id] = { x, y };
     const seat = el('div', 'seat'); seat.style.left = x + '%'; seat.style.top = y + '%';
     const idx = ps.indexOf(p);
     if (p.id === uid) seat.classList.add('me');
-    if (!p.waiting && inHandNow() && g.toAct === idx) seat.classList.add('turn');
+    if (!p.waiting && inHandNow() && !g.runout && g.toAct === idx) seat.classList.add('turn');
     if (p.folded || (!p.waiting && !p.inHand && g.phase !== 'waiting')) seat.classList.add('folded');
     if (W.ids.has(p.id)) seat.classList.add('win');
     const cards = el('div', 'cards');
-    if (!p.waiting && p.inHand && !(p.folded && p.id !== uid)) (p.hole || []).forEach(c => cards.append(cardEl(c, 'sm', W.hl)));
+    const hole = p.hole || [];
+    const visible = !p.waiting && p.inHand && (!p.folded || p.id === uid || hole.some(c => c !== 'x'));
+    if (visible) hole.forEach((c, ci) => {
+      const ce = cardEl(c, 'sm', W.hl);
+      if (dealAt) { ce.style.setProperty('--fx', ((50 - x) / 100 * W_) + 'px'); ce.style.setProperty('--fy', ((50 - y) / 100 * H_) + 'px'); animFrom(ce, 'dealin', dealAt, (ci * n + rel) * 90); }
+      cards.append(ce);
+    });
     const b = el('div', 'box'), nm = el('div', 'nm');
     if (!p.waiting && g.dealerId === p.id && g.phase !== 'waiting') nm.append(el('span', 'dbtn', 'D'));
     nm.append(document.createTextNode(p.name || '플레이어'));
-    if (p.allIn && !p.folded) nm.append(el('span', 'tag', '올인'));
+    if (p.allIn && !p.folded && inHandNow()) nm.append(el('span', 'tag', '올인'));
     const s = seats[p.id]; if (s && s.left) nm.append(el('span', 'tag', '나감'));
     b.append(nm, el('div', 'st', p.stack == null ? `${g.settings.start.toLocaleString()} 칩` : p.stack.toLocaleString() + ' 칩'));
     let sub = '';
-    if (p.waiting) sub = '다음 핸드부터';
+    if (p.waiting) sub = g.phase === 'waiting' ? '대기 중' : '다음 핸드부터';
     else if (showCards && g.result.hands[p.id]) sub = g.result.hands[p.id].name;
     else if (p.folded) sub = '폴드';
-    else if (!p.inHand && g.phase !== 'waiting') sub = p.stack ? '다음 핸드부터' : '칩 없음';
+    else if (!p.inHand && g.phase !== 'waiting') sub = p.stack ? '다음 핸드부터' : (s && s.rebuyReq ? '리바이 요청 중' : '칩 없음');
     if (sub) b.append(el('div', 'sub', sub));
     if (s && !s.online && !s.left) b.append(el('div', 'off', '연결 끊김'));
+    if (seat.classList.contains('turn')) { const tb = el('div', 'tbar'); tb.append(el('i')); b.append(tb); }
     seat.append(cards, b);
+    if (eqs && eqs[p.id] != null) seat.append(el('div', 'eq' + (eqs[p.id] === maxEq ? ' lead' : ''), eqs[p.id] + '%'));
     if (p.bet > 0) { const bt = el('div', 'bet', p.bet.toLocaleString()); bt.style[y < 50 ? 'bottom' : 'top'] = '-20px'; seat.append(bt); }
     box.append(seat);
   });
   const bd = $('#board'); bd.innerHTML = '';
-  for (let i = 0; i < 5; i++) bd.append(cardEl(g.board && g.board[i] ? g.board[i] : null, '', W.hl));
+  for (let i = 0; i < 5; i++) {
+    const c = g.board && g.board[i] ? g.board[i] : null, ce = cardEl(c, '', W.hl);
+    const f = flipAt[i]; if (c && f) { animFrom(ce, 'flip', f.t, 0); if (f.slow) ce.classList.add('slow'); }
+    bd.append(ce);
+  }
   const pot = potTotal();
   $('#pot').textContent = pot ? `팟 ${pot.toLocaleString()}` : '';
-  $('#phase').textContent = (g.handNo ? `#${g.handNo} · ` : '') + PHASE_KO[g.phase] + ` · 블라인드 ${g.settings.sb}/${g.settings.bb}`;
+  $('#phase').textContent = g.runout ? '🔥 올인 쇼다운 진행 중' : (g.handNo ? `#${g.handNo} · ` : '') + PHASE_KO[g.phase] + ` · 블라인드 ${g.settings.sb}/${g.settings.bb}`;
   const rb = $('#resultBox'), rs = $('#result');
   if (g.result && g.phase === 'showdown') {
     rb.hidden = false; rs.innerHTML = '';
@@ -263,8 +455,8 @@ function render() {
   } else rb.hidden = true;
   const lb = $('#board-list'); lb.innerHTML = '';
   ps.map(p => ({ p, net: p.stack + (inHandNow() ? (p.total || 0) : 0) - g.settings.start * (1 + (p.rebuys || 0)) }))
-    .sort((a, b) => b.net - a.net).forEach(({ p, net }) => {
-      const r = el('div', 'pl'); r.append(el('span', '', (p.name || '플레이어') + (p.rebuys ? ` (리바이 ${p.rebuys})` : '')));
+    .sort((a, b) => b.net - a.net).forEach(({ p, net }, k) => {
+      const r = el('div', 'pl'); r.append(el('span', '', (k === 0 && net > 0 ? '👑 ' : '') + (p.name || '플레이어') + (p.rebuys ? ` (리바이 ${p.rebuys})` : '')));
       r.append(el('span', net >= 0 ? 'pos' : 'neg', (net >= 0 ? '+' : '') + net.toLocaleString())); lb.append(r);
     });
   if (!ps.length) lb.append(el('div', 'hint', '첫 핸드를 시작하면 표시돼요'));
@@ -272,24 +464,36 @@ function render() {
   (g.log || []).slice(-14).reverse().forEach(m => lg.append(el('div', '', m)));
   const canSet = hostId === uid;
   $('#settings').hidden = !canSet;
-  if (canSet && document.activeElement.tagName !== 'INPUT') { $('#sSb').value = g.settings.sb; $('#sBb').value = g.settings.bb; $('#sStart').value = g.settings.start; }
-  $('#setHint').textContent = inHandNow() ? '설정은 핸드 사이에만 바꿀 수 있어요' : '';
+  if (canSet) {
+    if (document.activeElement.tagName !== 'INPUT') { $('#sSb').value = g.settings.sb; $('#sBb').value = g.settings.bb; $('#sStart').value = g.settings.start; }
+    $('#setHint').textContent = inHandNow() ? '설정은 핸드 사이에만 바꿀 수 있어요' : '';
+    const ra = $('#rebuyAdmin'); ra.innerHTML = '';
+    const broke = ps.filter(p => p.stack === 0 && !(p.inHand && !p.folded && inHandNow()));
+    if (!broke.length) ra.append(el('div', 'hint', '칩을 다 잃은 사람이 없어요'));
+    broke.forEach(p => {
+      const s = seats[p.id] || {}, pending = (s.rebuys || 0) > (p.seen || 0);
+      const row = el('div', 'rebuyRow'), nm = el('span', '', p.name); if (s.rebuyReq) nm.append(el('span', 'reqtag', '요청'));
+      row.append(nm, pending ? el('span', 'hint', '다음 핸드 반영') : btn(`+${g.settings.start.toLocaleString()} 주기`, 'gold', () => run('giveRebuy', { pid: p.id }, '리바이를 줬어요')));
+      ra.append(row);
+    });
+  }
   renderPanel();
 }
 
 function renderPanel() {
   if (!game) return;
   const g = game, ps = g.players || [], me = ps.find(p => p.id === uid), my = seats[uid];
-  const seated = my && !my.left, myTurn = inHandNow() && ps[g.toAct] && ps[g.toAct].id === uid;
-  const key = JSON.stringify([busy, g.phase, g.handNo, g.toAct, g.currentBet, me && [me.stack, me.bet, me.hole, me.folded, me.seen], seated, my && my.rebuys, g.board, ps.length]);
+  const seated = my && !my.left, myTurn = inHandNow() && !g.runout && ps[g.toAct] && ps[g.toAct].id === uid;
+  const key = JSON.stringify([busy, g.phase, g.runout, g.handNo, g.toAct, g.currentBet, me && [me.stack, me.bet, me.hole, me.folded, me.seen], seated, my && [my.rebuys, my.rebuyReq], g.board, ps.length, g.shown, Object.values(seats).filter(s => !s.left).length]);
   if (key === panelKey) { tick(); return; }
   panelKey = key;
   const mine = $('#mine'), A = $('#actions'); mine.innerHTML = ''; A.innerHTML = '';
   if (me && me.inHand && (me.hole || []).length) {
-    me.hole.forEach(c => mine.append(cardEl(c, 'lg', winnersInfo().hl)));
+    me.hole.forEach((c, ci) => { const ce = cardEl(c, 'lg', winnersInfo().hl); if (dealAt) animFrom(ce, 'dealin', dealAt, 300 + ci * 150); mine.append(ce); });
     const all = [...me.hole, ...(g.board || [])];
     const info = el('div', 'info'); info.append(el('b', '', me.stack.toLocaleString() + ' 칩'));
     if (all.length >= 5) info.append(el('div', '', '현재 패: ' + handName(bestHand(all).score)));
+    if (g.runout && g.equity && g.equity[uid] != null) info.append(el('div', '', `승률 ${g.equity[uid]}%`));
     if (me.folded) info.append(el('div', '', '폴드함'));
     mine.append(info);
   } else {
@@ -298,6 +502,7 @@ function renderPanel() {
   }
   if (busy) { A.append(el('div', 'hint', '처리 중…')); return; }
   if (!seated) { A.append(btn('다시 앉기', 'pri', () => run('sit', {}, '자리에 앉았어요'))); return; }
+  if (g.runout) { A.append(el('div', 'hint', '🔥 올인 — 카드가 한 장씩 공개됩니다…')); return; }
   if (myTurn) {
     const toCall = g.currentBet - me.bet, maxTo = me.bet + me.stack;
     const r1 = el('div', 'row');
@@ -330,21 +535,33 @@ function renderPanel() {
   }
   const r = el('div', 'row');
   r.append(btn(g.handNo ? '다음 핸드 시작' : '게임 시작', 'pri', () => run('start')));
+  if (g.phase === 'showdown' && me && (me.hole || []).length === 2 && !(g.shown && g.shown[uid]) && !(g.result && g.result.hands && g.result.hands[uid]))
+    r.append(btn('내 패 보여주기 👀', '', () => run('show')));
   const pendingRebuy = my && me && (my.rebuys || 0) > (me.seen || 0);
-  if (me && me.stack === 0 && !pendingRebuy) r.append(btn(`리바이 (+${g.settings.start.toLocaleString()})`, 'gold', () => run('rebuy', {}, '다음 핸드 시작 때 칩이 채워져요')));
+  if (me && me.stack === 0 && !pendingRebuy) {
+    if (hostId === uid) r.append(btn(`리바이 (+${g.settings.start.toLocaleString()})`, 'gold', () => run('giveRebuy', { pid: uid }, '다음 핸드 시작 때 칩이 채워져요')));
+    else r.append(btn(my.rebuyReq ? '리바이 요청함' : '방장에게 리바이 요청', 'gold', () => run('rebuyRequest', {}, '방장에게 요청했어요'))), my.rebuyReq && (r.lastChild.disabled = true);
+  }
   r.append(btn('자리 떠나기', '', () => run('leave', {}, '자리에서 일어났어요')));
   A.append(r);
   const cnt = Object.values(seats).filter(s => !s.left).length;
-  A.append(el('div', 'hint', pendingRebuy ? '리바이 신청됨 — 다음 핸드부터 반영돼요' : cnt < 2 ? '친구가 같은 테이블 코드로 들어오면 시작할 수 있어요' : `앉은 사람 ${cnt}명 · 아무나 시작 버튼을 누르면 돼요`));
+  A.append(el('div', 'hint', pendingRebuy ? '리바이 받음 — 다음 핸드부터 반영돼요' : cnt < 2 ? '친구가 같은 테이블 코드로 들어오면 시작할 수 있어요' : `앉은 사람 ${cnt}명 · 아무나 시작 버튼을 누르면 돼요`));
 }
 
+let lastTickSec = -1;
 function tick() {
-  const t = $('#turnTimer'); if (!t || !inHandNow()) return;
-  const left = Math.max(0, Math.ceil((deadline - (Date.now() - skew)) / 1000));
+  if (!inHandNow() || game.runout || !deadline) return;
+  const remainMs = deadline - (Date.now() - skew);
+  const left = Math.max(0, Math.ceil(remainMs / 1000));
   const mine = game.players[game.toAct] && game.players[game.toAct].id === uid;
-  t.textContent = mine ? `내 차례예요 · ${left}초 남음 (시간이 지나면 자동 체크/폴드)` : `· ${left}초`;
+  const t = $('#turnTimer'); if (t) t.textContent = mine ? `내 차례예요 · ${left}초 남음 (시간이 지나면 자동 체크/폴드)` : `· ${left}초`;
+  const total = turnTotal, frac = Math.max(0, Math.min(1, remainMs / total));
+  const bar = $('.seat.turn .tbar'); if (bar) { bar.firstChild.style.width = (frac * 100) + '%'; bar.classList.toggle('low', left <= 10); }
+  const ts = $('.seat.turn'); if (ts) ts.classList.toggle('low', left <= 10);
+  if (mine && left <= 10 && left > 0 && left !== lastTickSec) { lastTickSec = left; sfx.tick(); }
 }
 setInterval(tick, 1000);
+window.addEventListener('resize', () => { if (game) render(); });
 
 $('#applySet').onclick = () => run('settings', { sb: $('#sSb').value, bb: $('#sBb').value, start: $('#sStart').value }, '설정을 바꿨어요');
 $('#resetBtn').onclick = () => {
