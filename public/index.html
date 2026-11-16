@@ -129,6 +129,22 @@ aside{display:flex;flex-direction:column;gap:12px}
 .rebuyRow{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin:5px 0;gap:6px}
 .rebuyRow button{padding:5px 10px;font-size:12px}
 .reqtag{font-size:10px;background:var(--gold);color:#221a00;border-radius:5px;padding:0 5px;margin-left:4px}
+.stack{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;z-index:2;pointer-events:none}
+.stack .cols{display:flex;gap:2px;align-items:flex-end}
+.stack .col{display:flex;flex-direction:column-reverse}
+.chip{width:22px;height:7px;border-radius:5px/3px;margin-top:-2px;box-shadow:0 1px 0 #0008,inset 0 -1px 0 #0005}
+.stack .amt{font-size:11px;font-weight:800;color:var(--gold);background:#000b;border-radius:99px;padding:0 7px;margin-top:3px;white-space:nowrap}
+#potStack{position:relative;display:flex;justify-content:center;margin-top:8px;min-height:6px}
+#potStack .stack{position:static;transform:none}
+#potStack .chip{width:26px;height:8px}
+.bump{animation:bump .35s ease}
+@keyframes bump{50%{transform:scale(1.15)}}
+.fchip{position:absolute;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);border:3px dashed #ffffffb0;box-shadow:0 2px 5px #0009;z-index:7}
+.chipin{animation:chipin .35s cubic-bezier(.2,.9,.3,1.3) both}
+@keyframes chipin{from{opacity:0;transform:translate(-50%,-50%) scale(.3)}}
+#blindInfo{font-size:11.5px;color:var(--gold);margin-top:3px;opacity:.9}
+select{font:inherit;background:#0d1512;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 8px}
+@media(max-width:560px){.chip{width:16px;height:5px;margin-top:-1.5px}.stack .amt{font-size:10px}#potStack .chip{width:20px;height:6px}}
 </style>
 </head>
 <body>
@@ -147,7 +163,7 @@ aside{display:flex;flex-direction:column;gap:12px}
 
 <section id="game" hidden>
   <div>
-    <div class="table-wrap"><div class="felt"><div id="center"><div id="board"></div><div id="pot"></div><div id="phase"></div></div></div><div id="seats"></div><div class="fx" id="fx"></div></div>
+    <div class="table-wrap"><div class="felt"><div id="center"><div id="board"></div><div id="potStack"></div><div id="pot"></div><div id="phase"></div><div id="blindInfo"></div></div></div><div id="seats"></div><div class="fx" id="fx"></div></div>
     <div id="panel"><div id="mine"></div><div id="actions"></div><div class="reacts" id="reacts"></div></div>
   </div>
   <aside>
@@ -159,6 +175,8 @@ aside{display:flex;flex-direction:column;gap:12px}
       <div class="row"><label>스몰 블라인드</label><input type="number" id="sSb" min="1"></div>
       <div class="row"><label>빅 블라인드</label><input type="number" id="sBb" min="1"></div>
       <div class="row"><label>시작 칩</label><input type="number" id="sStart" min="10"></div>
+      <div class="row"><label>블라인드 상승</label><select id="sBlMode"><option value="off">끄기</option><option value="hands">N핸드마다</option><option value="minutes">N분마다</option></select><input type="number" id="sBlEvery" min="1" style="width:64px"></div>
+      <div class="row"><button id="applyBl">상승 규칙 적용</button><button class="gold" id="blUpNow">다음 핸드부터 올리기 ⬆️</button></div>
       <div class="row"><button id="applySet">적용</button><button class="danger" id="resetBtn">테이블 초기화</button></div>
       <div class="hint" id="setHint"></div>
       <h3 style="margin-top:12px">리바이 주기</h3><div id="rebuyAdmin"></div>
@@ -266,6 +284,43 @@ function confetti() {
   }
 }
 
+// ---------- 칩 ----------
+const DENOMS = [[100000, '#e86bb5'], [25000, '#5aa9ff'], [5000, '#f08a24'], [1000, '#f2cf3a'], [500, '#8b5cf6'], [100, '#2a2a2a'], [25, '#2fa35f'], [5, '#d83a3a'], [1, '#f2f2f2']];
+function breakdown(a) { const out = []; for (const [v, col] of DENOMS) { const n = Math.floor(a / v); if (n) { out.push([n, col]); a -= n * v; } } return out; }
+function chipStack(amount, label) {
+  const s = el('div', 'stack'), cols = el('div', 'cols');
+  const cap = innerWidth < 560 ? 6 : 8;
+  breakdown(amount).slice(0, 4).forEach(([n, col]) => {
+    const cl = el('div', 'col');
+    for (let i = 0; i < Math.min(n, cap); i++) { const ch = el('div', 'chip'); ch.style.background = `repeating-linear-gradient(90deg, ${col} 0 4px, #ffffffdd 4px 6px)`; cl.append(ch); }
+    cols.append(cl);
+  });
+  s.append(cols); if (label !== false) s.append(el('div', 'amt', amount.toLocaleString()));
+  return s;
+}
+const betPos = pid => { const p = posOf[pid], k = innerWidth < 560 ? .5 : .36; return p ? { x: p.x + (50 - p.x) * k, y: p.y + (50 - p.y) * k } : null; };
+function potPos() {
+  const w = $('.table-wrap').getBoundingClientRect(), r = $('#potStack').getBoundingClientRect();
+  if (!w.width) return { x: 50, y: 58 };
+  return { x: (r.left + r.width / 2 - w.left) / w.width * 100, y: (r.top + r.height / 2 - w.top) / w.height * 100 };
+}
+function fly(from, to, amount, delay) {
+  if (!from || !to) return;
+  const cols = breakdown(Math.max(1, amount)), n = Math.min(7, 2 + Math.floor(Math.log10(amount + 1)));
+  for (let i = 0; i < n; i++) {
+    const ch = el('div', 'fchip'); ch.style.background = cols[i % cols.length][1];
+    ch.style.left = from.x + '%'; ch.style.top = from.y + '%'; ch.style.opacity = 0;
+    $('#fx').append(ch);
+    const jx = (Math.random() - .5) * 2, jy = (Math.random() - .5) * 2;
+    const a = ch.animate([{ left: from.x + '%', top: from.y + '%', opacity: 1, transform: 'translate(-50%,-50%) scale(1)' },
+      { left: (to.x + jx) + '%', top: (to.y + jy) + '%', opacity: 1, transform: 'translate(-50%,-50%) scale(.85)' }],
+      { duration: 480, delay: (delay || 0) + i * 45, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'both' });
+    a.onfinish = () => ch.remove(); setTimeout(() => ch.remove(), 2500 + (delay || 0));
+  }
+  setTimeout(sfx.chip, (delay || 0) + 420);
+}
+let betAt = {}, lastPut = null, potBumpAt = 0, collectedAt = 0, potShownUntil = 0;
+
 // ---------- 접속 ----------
 function init() {
   setMute(muted);
@@ -282,7 +337,8 @@ function init() {
   socket.on('state', s => {
     const g = s.game; uid = s.you; hostId = s.host; deadline = s.deadline || 0; turnTotal = s.turnTotal || 45000; skew = Date.now() - s.now; seats = s.seats || {};
     onStateChange(prev, g); game = g;
-    prev = { handNo: g.handNo, board: (g.board || []).length, phase: g.phase, runout: !!g.runout, toAct: g.toAct };
+    const bets = {}; (g.players || []).forEach(x => { if (x.bet > 0) bets[x.id] = x.bet; });
+    prev = { handNo: g.handNo, board: (g.board || []).length, phase: g.phase, runout: !!g.runout, toAct: g.toAct, bets };
     render();
   });
   socket.on('fx', onFx);
@@ -310,14 +366,26 @@ $('#chatForm').onsubmit = e => {
 function onFx(f) {
   const KO = { fold: '폴드', check: '체크', call: '콜', bet: '벳', raise: '레이즈' };
   if (f.kind === 'show') { bubble(f.pid, '패 공개! 👀', 'raise'); sfx.flip(); return; }
+  if (f.kind === 'blinds') { banner(`블라인드 상승! ${f.sb}/${f.bb}`, 'info', 2200); sfx.heart(); return; }
+  if (['call', 'bet', 'raise'].includes(f.kind) && f.amount > 0) {
+    fly(posOf[f.pid], betPos(f.pid), f.amount, 0); betAt[f.pid] = Date.now() + 420; lastPut = { pid: f.pid, at: Date.now() };
+  }
   if (f.allIn) { bubble(f.pid, 'ALL IN!', 'allin', 2200); banner('ALL IN', '', 1700); shake(); sfx.allin(); return; }
   let txt = KO[f.kind] || f.kind; if (f.amount) txt += ' ' + f.amount.toLocaleString(); if (f.timeout) txt += ' ⏰';
   bubble(f.pid, txt, f.kind);
-  if (f.kind === 'fold') sfx.fold(); else if (f.kind === 'check') sfx.check(); else sfx.chip();
+  if (f.kind === 'fold') sfx.fold(); else if (f.kind === 'check') sfx.check();
 }
 
 function onStateChange(p, g) {
   if (!p) { if (g.handNo && ACTIVE.includes(g.phase)) dealAt = 0; return; }
+  const sameHand = g.handNo === p.handNo, newBets = (g.players || []).reduce((s, x) => s + (x.bet || 0), 0);
+  if (sameHand && newBets === 0 && (Object.keys(p.bets).length || (lastPut && Date.now() - lastPut.at < 1500))) {
+    const ids = new Set(Object.keys(p.bets)); if (lastPut && Date.now() - lastPut.at < 1500) ids.add(lastPut.pid);
+    const delay = lastPut && Date.now() - lastPut.at < 600 ? 520 : 0, to = potPos();
+    ids.forEach(id => fly(betPos(id), to, p.bets[id] || 10, delay));
+    potBumpAt = Date.now() + delay + 500; lastPut = null; collectedAt = Date.now() + delay;
+  }
+  if (!sameHand && g.phase !== 'waiting') setTimeout(() => (game.players || []).forEach((x, i) => { if (x.bet > 0) { fly(posOf[x.id], betPos(x.id), x.bet, 200 + i * 80); betAt[x.id] = Date.now() + 620 + i * 80; render(); } }), 30);
   if (g.handNo !== p.handNo && g.phase !== 'waiting') {
     dealAt = Date.now(); flipAt = {};
     const n = (g.players || []).filter(x => x.inHand).length; sfx.deal(n * 2);
@@ -329,7 +397,7 @@ function onStateChange(p, g) {
     if (slow) { sfx.heart(); setTimeout(sfx.flip, 900); } else sfx.flip();
   }
   if (g.runout && !p.runout) { banner('쇼다운!', 'info', 1800); sfx.heart(); }
-  if (g.phase === 'showdown' && p.phase !== 'showdown' && g.result) setTimeout(() => celebrate(g), g.result.type === 'showdown' && nb === 5 && p.board < 5 ? 1500 : 250);
+  if (g.phase === 'showdown' && p.phase !== 'showdown' && g.result) setTimeout(() => celebrate(g), g.result.type === 'showdown' && nb === 5 && p.board < 5 ? 1700 : 1100);
   const myIdx = (g.players || []).findIndex(x => x.id === uid);
   if (ACTIVE.includes(g.phase) && g.toAct === myIdx && myIdx >= 0 && !(p.toAct === myIdx && p.handNo === g.handNo && p.phase === g.phase)) { sfx.turn(); try { navigator.vibrate && navigator.vibrate(120); } catch {} }
 }
@@ -338,7 +406,9 @@ function celebrate(g) {
   const won = {};
   g.result.pots.forEach(pt => pt.winners.forEach((w, k) => won[w] = (won[w] || 0) + Math.floor(pt.amount / pt.winners.length) + (k === 0 ? pt.amount % pt.winners.length : 0)));
   const main = g.result.pots.find(pt => !pt.refund) || g.result.pots[0];
-  Object.entries(won).forEach(([id, amt]) => { const n = el('div', 'plus', '+' + amt.toLocaleString()); if (at(id, n, -20)) fxAdd(n, 2700); });
+  const from = potPos();
+  Object.entries(won).forEach(([id, amt], k) => { fly(from, posOf[id], amt, k * 150); const n = el('div', 'plus', '+' + amt.toLocaleString()); if (at(id, n, -20)) setTimeout(() => fxAdd(n, 2700), 450 + k * 150); });
+  potShownUntil = 0; setTimeout(render, 60);
   if (main) {
     const name = (g.players.find(p => p.id === main.winners[0]) || {}).name || '';
     const hand = g.result.hands && g.result.hands[main.winners[0]];
@@ -428,8 +498,8 @@ function render() {
     if (seat.classList.contains('turn')) { const tb = el('div', 'tbar'); tb.append(el('i')); b.append(tb); }
     seat.append(cards, b);
     if (eqs && eqs[p.id] != null) seat.append(el('div', 'eq' + (eqs[p.id] === maxEq ? ' lead' : ''), eqs[p.id] + '%'));
-    if (p.bet > 0) { const bt = el('div', 'bet', p.bet.toLocaleString()); bt.style[y < 50 ? 'bottom' : 'top'] = '-20px'; seat.append(bt); }
     box.append(seat);
+    if (p.bet > 0) { const bp = betPos(p.id), st = chipStack(p.bet); st.style.left = bp.x + '%'; st.style.top = bp.y + '%'; if (betAt[p.id]) animFrom(st, 'chipin', betAt[p.id], 0); box.append(st); }
   });
   const bd = $('#board'); bd.innerHTML = '';
   for (let i = 0; i < 5; i++) {
@@ -437,9 +507,14 @@ function render() {
     const f = flipAt[i]; if (c && f) { animFrom(ce, 'flip', f.t, 0); if (f.slow) ce.classList.add('slow'); }
     bd.append(ce);
   }
-  const pot = potTotal();
+  const pot = potTotal(), betsNow = ps.reduce((s, p) => s + (p.bet || 0), 0), center = pot - betsNow;
   $('#pot').textContent = pot ? `팟 ${pot.toLocaleString()}` : '';
-  $('#phase').textContent = g.runout ? '🔥 올인 쇼다운 진행 중' : (g.handNo ? `#${g.handNo} · ` : '') + PHASE_KO[g.phase] + ` · 블라인드 ${g.settings.sb}/${g.settings.bb}`;
+  const psEl = $('#potStack'); psEl.innerHTML = '';
+  const showPot = center > 0 && (inHandNow() || (g.phase === 'showdown' && Date.now() < collectedAt + 1000 + 900));
+  if (showPot) { const st = chipStack(center, false); if (potBumpAt && Date.now() - potBumpAt < 400) st.classList.add('bump'); psEl.append(st); }
+  if (potBumpAt > Date.now()) setTimeout(render, potBumpAt - Date.now() + 10);
+    $('#blindInfo').textContent = blindText(g);
+  $('#phase').textContent = g.runout ? '🔥 올인 쇼다운 진행 중' : (g.handNo ? `#${g.handNo} · ` : '') + PHASE_KO[g.phase] + ` · 블라인드 ${g.settings.sb}/${g.settings.bb}` + (g.blinds && g.blinds.mode !== 'off' ? ` (Lv.${g.blinds.level})` : '');
   const rb = $('#resultBox'), rs = $('#result');
   if (g.result && g.phase === 'showdown') {
     rb.hidden = false; rs.innerHTML = '';
@@ -465,7 +540,11 @@ function render() {
   const canSet = hostId === uid;
   $('#settings').hidden = !canSet;
   if (canSet) {
-    if (document.activeElement.tagName !== 'INPUT') { $('#sSb').value = g.settings.sb; $('#sBb').value = g.settings.bb; $('#sStart').value = g.settings.start; }
+    if (!['INPUT', 'SELECT'].includes(document.activeElement.tagName)) {
+      $('#sSb').value = g.settings.sb; $('#sBb').value = g.settings.bb; $('#sStart').value = g.settings.start;
+      const b = g.blinds || { mode: 'off', every: 10 }; $('#sBlMode').value = b.mode; $('#sBlEvery').value = b.every; $('#sBlEvery').disabled = b.mode === 'off';
+    }
+    $('#blUpNow').disabled = !!(g.blinds && g.blinds.pending);
     $('#setHint').textContent = inHandNow() ? '설정은 핸드 사이에만 바꿀 수 있어요' : '';
     const ra = $('#rebuyAdmin'); ra.innerHTML = '';
     const broke = ps.filter(p => p.stack === 0 && !(p.inHand && !p.folded && inHandNow()));
@@ -548,6 +627,19 @@ function renderPanel() {
   A.append(el('div', 'hint', pendingRebuy ? '리바이 받음 — 다음 핸드부터 반영돼요' : cnt < 2 ? '친구가 같은 테이블 코드로 들어오면 시작할 수 있어요' : `앉은 사람 ${cnt}명 · 아무나 시작 버튼을 누르면 돼요`));
 }
 
+function blindText(g) {
+  const b = g.blinds; if (!b) return '';
+  if (b.pending) return '⬆️ 다음 핸드부터 블라인드 상승';
+  if (b.mode === 'hands') { const left = Math.max(0, b.every - ((g.handNo || 0) - b.sinceHand)); return !g.handNo ? `블라인드 ${b.every}핸드마다 상승` : left === 0 ? '⬆️ 다음 핸드부터 블라인드 상승' : `${left}핸드 더 하면 블라인드 상승`; }
+  if (b.mode === 'minutes') {
+    if (!g.handNo) return `블라인드 ${b.every}분마다 상승`;
+    const ms = b.sinceAt + b.every * 60000 - (Date.now() - skew);
+    if (ms <= 0) return '⬆️ 다음 핸드부터 블라인드 상승';
+    const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; return `다음 블라인드 상승까지 ${m}:${String(s).padStart(2, '0')}`;
+  }
+  return '';
+}
+setInterval(() => { if (game && $('#blindInfo')) $('#blindInfo').textContent = blindText(game); }, 1000);
 let lastTickSec = -1;
 function tick() {
   if (!inHandNow() || game.runout || !deadline) return;
@@ -564,6 +656,9 @@ setInterval(tick, 1000);
 window.addEventListener('resize', () => { if (game) render(); });
 
 $('#applySet').onclick = () => run('settings', { sb: $('#sSb').value, bb: $('#sBb').value, start: $('#sStart').value }, '설정을 바꿨어요');
+$('#sBlMode').onchange = () => { $('#sBlEvery').disabled = $('#sBlMode').value === 'off'; if (!$('#sBlEvery').value || $('#sBlMode').value === 'minutes' && +$('#sBlEvery').value > 180) $('#sBlEvery').value = $('#sBlMode').value === 'minutes' ? 10 : 8; };
+$('#applyBl').onclick = () => run('blinds', { mode: $('#sBlMode').value, every: $('#sBlEvery').value }, '블라인드 규칙을 바꿨어요');
+$('#blUpNow').onclick = () => run('blindUpNow', {}, '블라인드 상승 예약!');
 $('#resetBtn').onclick = () => {
   if (!resetArmed) { resetArmed = true; $('#resetBtn').textContent = '정말 초기화? (다시 클릭)'; setTimeout(() => { resetArmed = false; $('#resetBtn').textContent = '테이블 초기화'; }, 4000); return; }
   resetArmed = false; $('#resetBtn').textContent = '테이블 초기화';

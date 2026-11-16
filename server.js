@@ -86,6 +86,23 @@ function sysChat(code, text) {
   r.chat.push(m); if (r.chat.length > 60) r.chat.shift();
   io.to(code).emit('chat', m);
 }
+function niceUp(v) { for (let k = 1; k < 1e12; k *= 10) for (const m of [1, 1.5, 2, 2.5, 3, 4, 5, 7.5]) { const c = m * k; if (c > v && Number.isInteger(c)) return c; } return v * 2; }
+function ensureBlinds(g) { if (!g.blinds) g.blinds = { mode: 'off', every: 10, level: 1, sinceAt: Date.now(), sinceHand: g.handNo || 0, pending: false }; return g.blinds; }
+function maybeRaiseBlinds(code, r) {
+  const g = r.game, bl = ensureBlinds(g);
+  if (!g.handNo) { bl.sinceAt = Date.now(); bl.sinceHand = 0; return; }
+  let up = bl.pending;
+  if (bl.mode === 'hands' && g.handNo - bl.sinceHand >= bl.every) up = true;
+  if (bl.mode === 'minutes' && Date.now() - bl.sinceAt >= bl.every * 60000) up = true;
+  if (!up) return;
+  const old = `${g.settings.sb}/${g.settings.bb}`;
+  const sb = niceUp(g.settings.sb), bb = sb * 2;
+  g.settings = { ...g.settings, sb, bb };
+  bl.level++; bl.sinceAt = Date.now(); bl.sinceHand = g.handNo; bl.pending = false;
+  g.log.push(`블라인드 상승 Lv.${bl.level}: ${old} → ${sb}/${bb}`);
+  sysChat(code, `⬆️ 블라인드 상승! Lv.${bl.level} · ${old} → ${sb}/${bb}`);
+  io.to(code).emit('fx', { kind: 'blinds', sb, bb, level: bl.level });
+}
 const REACTS = ['😂', '😱', '🔥', '👏', '🤔', '😭', '😎', '🙏'];
 
 const seatsForLogic = r => {
@@ -120,6 +137,7 @@ io.on('connection', socket => {
     s.name = name; s.left = false; if (!already) s.online = (s.online || 0) + 1;
     r.seats[pid] = s;
     if (!r.game) r.game = L.newTable(pid);
+    ensureBlinds(r.game);
     socket.data.code = code; socket.data.pid = pid;
     socket.join(code);
     socket.emit('chatHistory', r.chat);
@@ -130,6 +148,7 @@ io.on('connection', socket => {
     if (ACTIVE.includes(r.game.phase)) throw new Error('이미 핸드가 진행 중이에요');
     if (!r.seats[socket.data.pid] || r.seats[socket.data.pid].left) throw new Error('자리에 앉아야 시작할 수 있어요');
     for (const s of Object.values(r.seats)) if (!s.left && !(s.online > 0) && Date.now() - (s.offlineSince || 0) > 60000) { s.left = true; sysChat(socket.data.code, `${s.name} 님은 연결이 끊겨 자리에서 빠졌어요`); }
+    maybeRaiseBlinds(socket.data.code, r);
     r.game = L.startHand(r.game, seatsForLogic(r));
   });
 
@@ -206,12 +225,31 @@ io.on('connection', socket => {
     if (ACTIVE.includes(r.game.phase)) throw new Error('핸드 사이에만 바꿀 수 있어요');
     const sb = int(d.sb, 1, 1e7), bb = int(d.bb, sb, 1e8), start = int(d.start, bb * 10, 1e10);
     r.game.settings = { sb, bb, start };
+    const bl = ensureBlinds(r.game); bl.sinceAt = Date.now(); bl.sinceHand = r.game.handNo || 0;
     r.game.log.push(`설정 변경: 블라인드 ${sb}/${bb}, 시작 칩 ${start}`);
+  });
+
+  handle('blinds', async (d, r) => {
+    if (r.game.host !== socket.data.pid) throw new Error('방장만 바꿀 수 있어요');
+    const mode = String(d.mode || 'off'); if (!['off', 'hands', 'minutes'].includes(mode)) throw new Error('잘못된 설정');
+    const every = mode === 'hands' ? int(d.every, 1, 500) : mode === 'minutes' ? int(d.every, 1, 180) : 10;
+    const bl = ensureBlinds(r.game);
+    bl.mode = mode; bl.every = every; bl.sinceAt = Date.now(); bl.sinceHand = r.game.handNo || 0;
+    sysChat(socket.data.code, mode === 'off' ? '블라인드 자동 상승을 껐어요' : `블라인드가 ${every}${mode === 'hands' ? '핸드' : '분'}마다 올라가요`);
+  });
+
+  handle('blindUpNow', async (d, r) => {
+    if (r.game.host !== socket.data.pid) throw new Error('방장만 올릴 수 있어요');
+    const bl = ensureBlinds(r.game); if (bl.pending) throw new Error('이미 예약돼 있어요');
+    bl.pending = true;
+    if (!ACTIVE.includes(r.game.phase) && r.game.handNo) sysChat(socket.data.code, '다음 핸드부터 블라인드가 올라가요');
+    else sysChat(socket.data.code, '이번 핸드가 끝나면 블라인드가 올라가요');
   });
 
   handle('reset', async (d, r) => {
     if (r.game.host !== socket.data.pid) throw new Error('방장만 초기화할 수 있어요');
     const t = L.newTable(r.game.host); t.settings = r.game.settings; t.log = ['테이블이 초기화됐어요 — 모든 칩이 리셋돼요'];
+    const ob = ensureBlinds(r.game); t.blinds = { mode: ob.mode, every: ob.every, level: 1, sinceAt: Date.now(), sinceHand: 0, pending: false };
     for (const s of Object.values(r.seats)) { s.rebuys = 0; s.rebuyReq = false; }
     r.game = t;
   });
